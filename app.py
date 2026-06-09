@@ -4,7 +4,7 @@ from pathlib import Path
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QCheckBox, QComboBox, QFileDialog, QGroupBox, QHBoxLayout,
-    QLabel, QLineEdit, QMainWindow, QProgressBar, QPushButton,
+    QLabel, QLineEdit, QMainWindow, QPlainTextEdit, QProgressBar, QPushButton,
     QTextEdit, QVBoxLayout, QWidget, QFormLayout,
 )
 
@@ -78,6 +78,14 @@ QCheckBox::indicator {
     background-color: #313244;
 }
 QCheckBox::indicator:checked { background-color: #89b4fa; border-color: #89b4fa; }
+QPlainTextEdit {
+    background-color: #313244;
+    border: 1px solid #45475a;
+    border-radius: 4px;
+    padding: 6px 8px;
+    color: #cdd6f4;
+}
+QPlainTextEdit:focus { border-color: #89b4fa; }
 QTextEdit {
     background-color: #181825;
     border: 1px solid #45475a;
@@ -112,7 +120,7 @@ class MainWindow(QMainWindow):
 
     def _build_ui(self):
         self.setWindowTitle("Web to PDF")
-        self.setMinimumSize(660, 680)
+        self.setMinimumSize(660, 720)
 
         root = QWidget()
         self.setCentralWidget(root)
@@ -120,11 +128,12 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(14)
 
-        # --- URL ---
-        url_group = QGroupBox("Web Page URL")
-        url_layout = QHBoxLayout(url_group)
-        self.url_input = QLineEdit()
-        self.url_input.setPlaceholderText("https://example.com")
+        # --- URLs ---
+        url_group = QGroupBox("Web Page URLs (one per line — each becomes a chapter)")
+        url_layout = QVBoxLayout(url_group)
+        self.url_input = QPlainTextEdit()
+        self.url_input.setPlaceholderText("https://example.com/chapter-1\nhttps://example.com/chapter-2\nhttps://example.com/chapter-3")
+        self.url_input.setFixedHeight(90)
         url_layout.addWidget(self.url_input)
         layout.addWidget(url_group)
 
@@ -305,25 +314,31 @@ class MainWindow(QMainWindow):
                 "Normal (1cm)": "1cm", "Large (2cm)": "2cm"}[self.margin_combo.currentText()]
 
     def _start_convert(self):
-        url = self.url_input.text().strip()
+        raw_urls = self.url_input.toPlainText().strip().splitlines()
+        urls = []
+        for u in raw_urls:
+            u = u.strip()
+            if not u:
+                continue
+            if not u.startswith(("http://", "https://")):
+                u = "https://" + u
+            urls.append(u)
+
         output = self.out_input.text().strip()
 
-        if not url:
-            self._set_status("Please enter a URL.", "error")
+        if not urls:
+            self._set_status("Please enter at least one URL.", "error")
             return
-        if not url.startswith(("http://", "https://")):
-            url = "https://" + url
-            self.url_input.setText(url)
         if not output:
             self._set_status("Please choose an output file.", "error")
             return
 
-        if DND_URL in url and not is_logged_in():
+        if any(DND_URL in u for u in urls) and not is_logged_in():
             self.log_view.append("Tip: Log in to D&D Beyond to access protected pages.")
 
         margin = self._margin_value()
         options = ConvertOptions(
-            url=url, output_path=output,
+            urls=urls, output_path=output,
             format=self.format_combo.currentText(),
             landscape=self.landscape_check.isChecked(),
             margin_top=margin, margin_right=margin,

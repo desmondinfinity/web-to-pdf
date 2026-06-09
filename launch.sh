@@ -1,3 +1,4 @@
 #!/bin/bash
 cd "$(dirname "$0")"
-exec WAYLAND_DISPLAY=wayland-1 python3 main.py "$@"
+export WAYLAND_DISPLAY=wayland-1
+exec python3 main.py "$@"
