@@ -1,9 +1,29 @@
 from dataclasses import dataclass
 import os
+import shutil
 import subprocess
 import tempfile
+from pathlib import Path
 from playwright.sync_api import sync_playwright
 from session import SESSION_FILE, DND_URL
+
+
+def _find_pdfunite() -> str:
+    # Check project-local bin/ first (populated by install.ps1 on Windows)
+    local = Path(__file__).parent / "bin" / "pdfunite"
+    if local.exists():
+        return str(local)
+    local_exe = local.with_suffix(".exe")
+    if local_exe.exists():
+        return str(local_exe)
+    found = shutil.which("pdfunite")
+    if found:
+        return found
+    raise FileNotFoundError(
+        "pdfunite not found. "
+        "Linux/macOS: install poppler-utils via your package manager. "
+        "Windows: run install.ps1."
+    )
 
 
 @dataclass
@@ -97,7 +117,7 @@ def convert_to_pdf(options: ConvertOptions, progress_callback=None) -> None:
             if multi:
                 report(f"Merging {len(urls)} PDFs...")
                 subprocess.run(
-                    ["pdfunite"] + temp_files + [options.output_path],
+                    [_find_pdfunite()] + temp_files + [options.output_path],
                     check=True, capture_output=True,
                 )
 
