@@ -50,12 +50,20 @@ fi
 
 # ── Python packages ────────────────────────────────────────────────────────────
 step "Installing Python packages"
-# --user works on most setups; fall back without it for venvs / root
-python3 -m pip install --user --quiet PyQt6 playwright 2>/dev/null \
-    || python3 -m pip install --quiet PyQt6 playwright
+# Always use a venv to avoid conflicts with externally-managed system Python (PEP 668)
+python3 -m venv --system-site-packages "${SCRIPT_DIR}/.venv"
+VENV_PIP="${SCRIPT_DIR}/.venv/bin/pip"
+VENV_PY="${SCRIPT_DIR}/.venv/bin/python"
+
+if command -v pacman &>/dev/null; then
+    # PyQt6 already installed system-wide via pacman; only need playwright
+    "${VENV_PIP}" install --quiet playwright
+else
+    "${VENV_PIP}" install --quiet PyQt6 playwright
+fi
 
 step "Installing Playwright browser"
-python3 -m playwright install chromium
+"${VENV_PY}" -m playwright install chromium
 
 # ── Desktop entry (Linux only) ─────────────────────────────────────────────────
 if [ "$OS" = "Linux" ]; then

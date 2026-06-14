@@ -11,4 +11,8 @@ if [ -z "${WAYLAND_DISPLAY:-}" ] && [ "$(uname)" = "Linux" ]; then
     done
 fi
 
-exec python3 main.py "$@"
+if [ -f ".venv/bin/python" ]; then
+    exec .venv/bin/python main.py "$@"
+else
+    exec python3 main.py "$@"
+fi
