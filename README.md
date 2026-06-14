@@ -1,5 +1,7 @@
 # Web to PDF
 
+![CI](https://github.com/desmondinfinity/web-to-pdf/actions/workflows/ci.yml/badge.svg)
+
 A desktop app that converts web pages to PDF files. Supports combining multiple pages into a single PDF (useful for saving a book that spans multiple chapters across different URLs), and includes a D&D Beyond login flow so you can save protected campaign and character pages.
 
 ---
