@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Install & import test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install (Linux / macOS)
+        if: runner.os != 'Windows'
+        run: bash install.sh
+
+      - name: Install (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: powershell -ExecutionPolicy Bypass -File install.ps1
+
+      # QT_QPA_PLATFORM=offscreen lets PyQt6 import on headless CI runners
+      - name: Verify imports (Linux / macOS)
+        if: runner.os != 'Windows'
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          .venv/bin/python -c "
+          from app import MainWindow, DARK_STYLE
+          from converter import ConvertOptions
+          print('All imports OK')
+          "
+
+      - name: Verify imports (Windows)
+        if: runner.os == 'Windows'
+        env:
+          QT_QPA_PLATFORM: offscreen
+        shell: pwsh
+        run: |
+          python -c "
+          from app import MainWindow, DARK_STYLE
+          from converter import ConvertOptions
+          print('All imports OK')
+          "
